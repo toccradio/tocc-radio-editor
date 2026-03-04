@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>stand.fm 埋め込みコード変換</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 16px; line-height: 1.5; }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    textarea { width: 100%; min-height: 190px; padding: 10px; box-sizing: border-box; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; margin: 10px 0; }
+    button { padding: 10px 14px; cursor: pointer; }
+    .hint { color: #444; font-size: 14px; margin: 6px 0 14px; }
+    .status { margin-top: 8px; font-size: 14px; }
+    .ok { color: #0a7; }
+    .ng { color: #c33; }
+    code { background: #f3f3f3; padding: 2px 4px; border-radius: 4px; }
+    .small { font-size: 13px; color: #555; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>stand.fm 埋め込みコード変換</h2>
+    <div class="hint">
+      WordPressの埋め込みHTMLをコピーして, ここに貼り付け → 「変換」→ 「コピー」→ WordPressに貼り戻す, だけで運用できる想定です.
+    </div>
+
+    <div class="small">
+      対応例: <code>&lt;iframe src="https://stand.fm/embed/episodes/..."&gt;</code> を含むHTMLならOK. あなたの「円形ズーム版」でも, stand.fm公式埋め込みでもOKです.
+    </div>
+
+    <h3>入力</h3>
+    <textarea id="in" placeholder="ここに埋め込みコードを貼り付け"></textarea>
+
+    <div class="row">
+      <button id="convert">変換</button>
+      <button id="copyOut">出力をコピー</button>
+      <button id="clear">クリア</button>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <h3>出力（stand.fm公式埋め込み形式）</h3>
+    <textarea id="out" readonly placeholder="変換結果がここに出ます"></textarea>
+
+    <div class="small" style="margin-top:10px;">
+      生成ルール: 入力から最初に見つかった <code>iframe</code> の <code>src</code> を抽出して, 次のテンプレートに差し込みます.
+    </div>
+  </div>
+
+  <script>
+    const $in = document.getElementById("in");
+    const $out = document.getElementById("out");
+    const $status = document.getElementById("status");
+
+    function setStatus(msg, ok) {
+      $status.textContent = msg;
+      $status.className = "status " + (ok ? "ok" : "ng");
+    }
+
+    function extractStandFmSrc(html) {
+      // 1) iframeタグのsrcを探す（大文字小文字, 改行, 属性順の揺れを許容）
+      const iframeSrcMatch = html.match(/<iframe\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/i);
+      if (!iframeSrcMatch) return null;
+
+      const src = iframeSrcMatch[1].trim();
+
+      // 2) stand.fm の embed っぽいURLか軽くチェック（厳密にしない）
+      // 例: https://stand.fm/embed/episodes/xxxxxxxx
+      if (!/stand\.fm\/embed\/episodes\//i.test(src)) {
+        // stand.fm以外が混ざっていても, とりあえず返す方が実用的なので返す
+        // 必要ならここで null にして弾ける
+      }
+      return src;
+    }
+
+    function buildOfficialEmbed(src) {
+      // ユーザーが提示した「stand.fmの埋め込みコード」テンプレート
+      return `<style>
+.zoom-outer{
+  width: 100%;
+  height: 250px;          /* 背景の高さ */
+  margin: 18px auto;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* ↓↓↓ ここを好きな画像に変更 ↓↓↓ */
+  background-image: url("https://tocc.fun/wp-content/uploads/2026/02/AdobeStock_635432078-scaled.jpg");
+  background-size: cover;      /* 全体を覆う */
+  background-position: center; /* 中央配置 */
+  background-repeat: no-repeat;
+}
+
+.zoom-area{
+  --s: 5;
+  --tx: 107px;
+  --ty: 140px;
+
+  width: 130px;
+  height: 130px;
+  overflow: hidden;
+
+  border-radius: 70px;
+  background: #fff;  /* 円の縁を白にしたいなら残す */
+  position: relative;
+}
+
+.zoom-area iframe{
+  position: absolute;
+  right: 0;
+  bottom: 0;
+
+  width: 760px;
+  height: 190px;
+  border: 0;
+
+  transform-origin: right bottom;
+  transform: translate(var(--tx), var(--ty)) scale(var(--s));
+}
+</style>
+
+<div class="zoom-outer">
+  <div class="zoom-area">
+    <iframe
+      src="${src}" allow="encrypted-media; clipboard-write"
+      allowtransparency="true">
+    </iframe>
+  </div>
+</div>`;
+    }
+
+    document.getElementById("convert").addEventListener("click", () => {
+      const html = $in.value || "";
+      const src = extractStandFmSrc(html);
+      if (!src) {
+        $out.value = "";
+        setStatus("変換失敗. 入力から iframe の src が見つかりませんでした.", false);
+        return;
+      }
+      $out.value = buildOfficialEmbed(src);
+      setStatus("変換OK. iframe src を抽出してテンプレートに差し込みました.", true);
+    });
+
+    document.getElementById("copyOut").addEventListener("click", async () => {
+      const text = $out.value || "";
+      if (!text) {
+        setStatus("コピー失敗. 先に「変換」を押してください.", false);
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        setStatus("コピーOK. 出力をクリップボードに保存しました.", true);
+      } catch (e) {
+        // clipboard APIが弾かれた場合のフォールバック
+        $out.focus();
+        $out.select();
+        const ok = document.execCommand("copy");
+        setStatus(ok ? "コピーOK（フォールバック）. 出力をコピーしました." : "コピー失敗. ブラウザの権限設定を確認してください.", ok);
+      }
+    });
+
+    document.getElementById("clear").addEventListener("click", () => {
+      $in.value = "";
+      $out.value = "";
+      setStatus("", true);
+    });
+  </script>
+</body>
+</html>
