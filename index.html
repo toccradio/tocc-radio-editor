@@ -3,9 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <img src = "tocc-logo-300x126.png" width="160px" height="75px"/>
   <title>stand.fm 埋め込みコード変換</title>
   <style>
-    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 16px; line-height: 1.5; }
+ 	.title {font-size: 40px; text-align: center;}
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 16px; line-height: 1.5; background-color:#FCC800;}
     .wrap { max-width: 980px; margin: 0 auto; }
     textarea { width: 100%; min-height: 190px; padding: 10px; box-sizing: border-box; }
     .row { display: flex; gap: 12px; flex-wrap: wrap; margin: 10px 0; }
@@ -19,14 +21,10 @@
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h2>stand.fm 埋め込みコード変換</h2>
+  <div class="wrap" >
+    <h2 class="title" >stand.fm 埋め込みコード変換</h2>
     <div class="hint">
-      WordPressの埋め込みHTMLをコピーして, ここに貼り付け → 「変換」→ 「コピー」→ WordPressに貼り戻す, だけで運用できる想定です.
-    </div>
-
-    <div class="small">
-      対応例: <code>&lt;iframe src="https://stand.fm/embed/episodes/..."&gt;</code> を含むHTMLならOK. あなたの「円形ズーム版」でも, stand.fm公式埋め込みでもOKです.
+      stand.fmの「埋め込みコード」をコピーして、ここに貼り付ける → 「変換」をクリック→ 「出力をコピー」をクリック→ WordPressの「カスタムHTML」に貼り付けるだけでラジオ部分を作成できます。
     </div>
 
     <h3>入力</h3>
@@ -37,7 +35,9 @@
       <button id="copyOut">出力をコピー</button>
       <button id="clear">クリア</button>
     </div>
-
+	
+	<br>
+	
     <div id="status" class="status"></div>
 
     <h3>出力（stand.fm公式埋め込み形式）</h3>
